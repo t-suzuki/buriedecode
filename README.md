@@ -1,7 +1,9 @@
-buriedecode - v0.0.2 (2013/08/03)
-=================================
+buriedcode
+==========
   expanding buried script in another language's source code in-place.
 
+  - version: 0.0.2
+  - date: 2013/08/03
   - Takahiro SUZUKI <takahiro.suzuki.ja@gmail.com>
   - https://github.com/t-suzuki/buriedecode
 

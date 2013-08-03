@@ -6,8 +6,8 @@ import sys
 import re
 import subprocess
 
-VERSION = [0, 0, 2]
-DATE = [2013, 8, 3]
+VERSION = (0, 0, 2)
+DATE = (2013, 8, 3)
 
 VERBOSE = False
 def _I(s, *av):
@@ -176,11 +176,14 @@ def process_file(in_file_path, out_file_path):
 
 def readme_str():
     import datetime
-    title = 'buriedecode - v%d.%d.%d (%s)' % tuple(VERSION + [datetime.datetime(*DATE).strftime('%Y/%m/%d')])
-    return '''%s
-%s
+    versionstr = '%d.%d.%d' % VERSION
+    datestr = datetime.datetime(*DATE).strftime('%Y/%m/%d')
+    return '''buriedcode
+==========
   expanding buried script in another language\'s source code in-place.
 
+  - version: %s
+  - date: %s
   - Takahiro SUZUKI <takahiro.suzuki.ja@gmail.com>
   - https://github.com/t-suzuki/buriedecode
 
@@ -205,7 +208,7 @@ burying example: burying Python in C/C++
     for i in range(3):
         print "#define NEXT_TO_%%d (%%d+1)" %% (i, i)' )
     */
-''' % (title, '='*len(title))
+''' % (versionstr, datestr)
 
 def main():
     if len(sys.argv) < 2:
