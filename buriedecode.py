@@ -6,7 +6,7 @@ import sys
 import re
 import subprocess
 
-VERSION = [0, 0, 1]
+VERSION = [0, 0, 2]
 DATE = [2013, 8, 3]
 
 VERBOSE = False
@@ -14,7 +14,7 @@ def _I(s, *av):
     if not VERBOSE:
         return
     if len(av) > 0:
-        print >> sys.stderr, ' '.join([s] + av)
+        print >> sys.stderr, ' '.join([s] + list(av))
     else:
         print >> sys.stderr, s
 
@@ -43,8 +43,8 @@ def create_C_or_CPP_processor(tag, suffix, compiler):
                     p = subprocess.Popen([compiler, tmp.name, '-o', exe.name],
                             stdout=subprocess.PIPE)
                     stdout, stderr = p.communicate()
-                    _I('compiler:', stdout)
-                    _I('compiler:', stderr)
+                    if stdout: _I('compiler:', stdout)
+                    if stderr: _I('compiler:', stderr)
 
                     p = subprocess.Popen([exe.name], stdout=subprocess.PIPE)
                     stdout, stderr = p.communicate()
@@ -72,43 +72,73 @@ class ProgrammingLanguage(object):
     def _comment_line_re(self): pass
     def _replaced_block_header(self, script_tag): pass
     def _replaced_block_footer(self, script_tag): pass
+    def _block_body_to_str(self, block_body): return block_body
+    def _line_body_to_str(self, line_body): return line_body
     def process_blocks(self, in_text):
-        def rep(mo):
-            org_block = mo.group(0)
-            gd = mo.groupdict()
-            header = gd['head'].rstrip()
-            code_block = gd['body'].rstrip()
-            _I('org_block:', org_block)
-            _I('header:', header)
-            _I('code_block:', code_block)
-            processor = tag_to_processor(header)
-            result = processor.execute(code_block).rstrip()
-            insert_str = '\n'.join([
-                    self._replaced_block_header(processor.TAG),
-                    result,
-                    self._replaced_block_footer(processor.TAG),
-                    ])
-            maybe_same_str = in_text[mo.end()+1:mo.end()+1+len(insert_str)]
-            _I('insert_str:', insert_str)
-            _I('maybe_same_str:', maybe_same_str)
-            if insert_str == maybe_same_str:
-                _I('no change!')
-                return org_block
-            else:
-                _I('inserting!')
-                return '\n'.join([
-                    org_block,
-                    insert_str
-                    ])
+        def rep(is_block):
+            def real_rep(mo):
+                org_block = mo.group(0)
+                gd = mo.groupdict()
+                header = gd['head'].rstrip()
+                code_block = self._line_body_to_str(gd['body'].rstrip())
+                _I('org_block:', org_block)
+                _I('header:', header)
+                _I('code_block:', code_block)
+                processor = tag_to_processor(header)
+                if processor is None:
+                    return org_block
+                result = processor.execute(code_block).rstrip()
+                insert_str = '\n'.join([
+                        self._replaced_block_header(processor.TAG),
+                        result,
+                        self._replaced_block_footer(processor.TAG),
+                        ])
+                # block comments do not have a terminating line break, so insert one.
+                if is_block:
+                    insert_str = '\n' + insert_str
+                maybe_same_str = in_text[mo.end():mo.end()+len(insert_str)]
+                _I('insert_str:', '[%s]' % insert_str)
+                _I('maybe_same_str:', '[%s]' % maybe_same_str)
+                if insert_str == maybe_same_str:
+                    _I('no change!')
+                    return org_block
+                else:
+                    _I('inserting!')
+                    if is_block:
+                        # trailing line break is left to the original text, so append nothing.
+                        return org_block + insert_str
+                    else:
+                        # line comments end with line breaks, so do nothing.
+                        return org_block + insert_str + '\n'
+            return real_rep
 
-        out_text = self._comment_block_re().sub(rep, in_text)
-        return out_text
+        tmp_text = in_text
 
-class LanguageCAndCPP(ProgrammingLanguage):
+        block_re = self._comment_block_re()
+        if block_re:
+            tmp_text = block_re.sub(rep(True), tmp_text)
+
+        line_re = self._comment_line_re()
+        if line_re:
+            tmp_text = line_re.sub(rep(False), tmp_text)
+
+        return tmp_text
+
+class LanguageC(ProgrammingLanguage):
     def _comment_block_re(self):
-        return re.compile(ur'/\*\?(?P<head>.*?\n)(?P<body>.*?)\*/', re.S)
+        return re.compile(ur'/\*\?(?P<head>([^/]|[^*]/)*?\n)(?P<body>.*?)\*/', re.S)
     def _comment_line_re(self):
-        return re.compile(ur'//\?(?P<head>.*?\n$)(//(?P<body>.*?$))*', re.M | re.S)
+        return None
+    def _replaced_block_header(self, script_tag):
+        return '/*?%s:replaced:begin*/' % script_tag
+    def _replaced_block_footer(self, script_tag):
+        return '/*?%s:replaced:end*/' % script_tag
+
+class LanguageCPP(LanguageC):
+    def _comment_line_re(self):
+        return re.compile(ur'//\?(?P<head>.*?\n)(?P<body>(//(?!\?).*?\n)+)')
+    def _line_body_to_str(self, line_body):
+        return re.compile(ur'^//(.*?)$', re.M).sub(ur'\1', line_body)
     def _replaced_block_header(self, script_tag):
         return '//?%s:replaced:begin' % script_tag
     def _replaced_block_footer(self, script_tag):
@@ -123,8 +153,10 @@ def extension_to_language(ext):
         ext = ext[1:]
     try:
         cls = {
-                'cpp': LanguageCAndCPP,
-                'c': LanguageCAndCPP,
+                'cpp': LanguageCPP,
+                'hpp': LanguageCPP,
+                'c': LanguageC,
+                'h': LanguageCPP, # we do not know whether it is C or C++.
                 }[ext.lower()]
         return cls()
     except:
@@ -156,6 +188,9 @@ def help():
     print '  - Ruby (ruby)'
     print '  - C (gcc)'
     print '  - C++ (g++)'
+    print
+    print 'supported host languages:'
+    print '  - C/C++ (.c, .cpp, .h, .hpp)'
     print
     print 'burying example: burying Python in C/C++'
     print '  /*?python'
