@@ -18,19 +18,17 @@ def _I(s, *av):
     else:
         print >> sys.stderr, s
 
-class ProcessorPython(object):
-    TAG = 'python'
-    def execute(self, script):
-        p = subprocess.Popen(['python', '-c', script], stdout=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        return stdout
+def create_script_engine_processor(tag, cmd, option):
+    class ProcessorScriptEngine(object):
+        TAG = tag
+        def execute(self, script):
+            p = subprocess.Popen([cmd, option, script], stdout=subprocess.PIPE)
+            stdout, stderr = p.communicate()
+            return stdout
+    return ProcessorScriptEngine
 
-class ProcessorRuby(object):
-    TAG = 'ruby'
-    def execute(self, script):
-        p = subprocess.Popen(['ruby', '-e', script], stdout=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        return stdout
+ProcessorPython = create_script_engine_processor('python', 'python', '-c')
+ProcessorRuby = create_script_engine_processor('ruby', 'ruby', '-e')
 
 def create_C_or_CPP_processor(tag, suffix, compiler):
     class ProcessorCorCPP(object):
@@ -154,8 +152,8 @@ def help():
     print '  $ buriedecode [files]'
     print
     print 'supported script languages:'
-    print '  - Python'
-    print '  - Ruby'
+    print '  - Python (python)'
+    print '  - Ruby (ruby)'
     print '  - C (gcc)'
     print '  - C++ (g++)'
     print
