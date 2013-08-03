@@ -1,5 +1,5 @@
-buriedcode
-==========
+buriedecode
+===========
   expanding buried script in another language's source code in-place.
 
   - version: 0.0.2
