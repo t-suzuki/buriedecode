@@ -180,12 +180,13 @@ def readme_str():
     return '''%s
 %s
   expanding buried script in another language\'s source code in-place.
-  Takahiro SUZUKI <takahiro.suzuki.ja@gmail.com>
-  https://github.com/t-suzuki/buriedecode
+
+  - Takahiro SUZUKI <takahiro.suzuki.ja@gmail.com>
+  - https://github.com/t-suzuki/buriedecode
 
 usage:
 ------
-  $ buriedecode [files]
+    $ buriedecode [files]
 
 supported script(buried, embeded) languages:
 --------------------------------------------

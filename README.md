@@ -1,12 +1,13 @@
 buriedecode - v0.0.2 (2013/08/03)
 =================================
   expanding buried script in another language's source code in-place.
-  Takahiro SUZUKI <takahiro.suzuki.ja@gmail.com>
-  https://github.com/t-suzuki/buriedecode
+
+  - Takahiro SUZUKI <takahiro.suzuki.ja@gmail.com>
+  - https://github.com/t-suzuki/buriedecode
 
 usage:
 ------
-  $ buriedecode [files]
+    $ buriedecode [files]
 
 supported script(buried, embeded) languages:
 --------------------------------------------
