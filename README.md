@@ -20,9 +20,9 @@ supported host languages:
   - C/C++ (.c, .cpp, .h, .hpp)
 
 burying example: burying Python in C/C++
-----------------------------------------'
-  /*?python
-  for i in range(3):
-    print "#define NEXT_TO_%d (%d+1)" % (i, i)' )
-  */
+----------------------------------------
+    /*?python
+    for i in range(3):
+        print "#define NEXT_TO_%d (%d+1)" % (i, i)' )
+    */
 
