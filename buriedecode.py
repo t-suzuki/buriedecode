@@ -32,11 +32,38 @@ class ProcessorRuby(object):
         stdout, stderr = p.communicate()
         return stdout
 
+def create_C_or_CPP_processor(tag, suffix, compiler):
+    class ProcessorCorCPP(object):
+        TAG = tag
+        def execute(self, script):
+            import tempfile
+            with tempfile.NamedTemporaryFile('wb', suffix=suffix) as tmp:
+                tmp.write(script)
+                tmp.flush()
+                _I('temp file path:', tmp.name)
+                with tempfile.NamedTemporaryFile('wb', suffix='.exe') as exe:
+                    p = subprocess.Popen([compiler, tmp.name, '-o', exe.name],
+                            stdout=subprocess.PIPE)
+                    stdout, stderr = p.communicate()
+                    _I('compiler:', stdout)
+                    _I('compiler:', stderr)
+
+                    p = subprocess.Popen([exe.name], stdout=subprocess.PIPE)
+                    stdout, stderr = p.communicate()
+
+            return stdout
+    return ProcessorCorCPP
+
+ProcessorC = create_C_or_CPP_processor('c', '.c', 'gcc')
+ProcessorCPP = create_C_or_CPP_processor('cpp', '.cpp', 'g++')
+
 def tag_to_processor(tag):
     try:
         cls = {
                 ProcessorPython.TAG: ProcessorPython,
                 ProcessorRuby.TAG: ProcessorRuby,
+                ProcessorC.TAG: ProcessorC,
+                ProcessorCPP.TAG: ProcessorCPP,
                 }[tag.strip().lower()]
         return cls()
     except:
@@ -129,6 +156,8 @@ def help():
     print 'supported script languages:'
     print '  - Python'
     print '  - Ruby'
+    print '  - C (gcc)'
+    print '  - C++ (g++)'
     print
     print 'burying example: burying Python in C/C++'
     print '  /*?python'
