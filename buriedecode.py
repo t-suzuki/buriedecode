@@ -174,33 +174,41 @@ def process_file(in_file_path, out_file_path):
         return True
     return False
 
-def help():
+def readme_str():
     import datetime
-    print 'buriedecode - v%d.%d.%d (%s)' % tuple(VERSION + [datetime.datetime(*DATE).strftime('%Y/%m/%d')])
-    print '  expanding buried script in another language\'s source code in-place.'
-    print '  Takahiro SUZUKI <takahiro.suzuki.ja@gmail.com>'
-    print
-    print 'usage:'
-    print '  $ buriedecode [files]'
-    print
-    print 'supported script languages:'
-    print '  - Python (python)'
-    print '  - Ruby (ruby)'
-    print '  - C (gcc)'
-    print '  - C++ (g++)'
-    print
-    print 'supported host languages:'
-    print '  - C/C++ (.c, .cpp, .h, .hpp)'
-    print
-    print 'burying example: burying Python in C/C++'
-    print '  /*?python'
-    print '  for i in range(3):'
-    print '    print "#define NEXT_TO_%d (%d+1)" % (i, i)' 
-    print '  */'
+    title = 'buriedecode - v%d.%d.%d (%s)' % tuple(VERSION + [datetime.datetime(*DATE).strftime('%Y/%m/%d')])
+    return '''%s
+%s
+  expanding buried script in another language\'s source code in-place.
+  Takahiro SUZUKI <takahiro.suzuki.ja@gmail.com>
+  https://github.com/t-suzuki/buriedecode
+
+usage:
+------
+  $ buriedecode [files]
+
+supported script(buried, embeded) languages:
+--------------------------------------------
+  - Python (python)
+  - Ruby (ruby)
+  - C (gcc)
+  - C++ (g++)
+
+supported host languages:
+-------------------------
+  - C/C++ (.c, .cpp, .h, .hpp)
+
+burying example: burying Python in C/C++
+----------------------------------------'
+  /*?python
+  for i in range(3):
+    print "#define NEXT_TO_%%d (%%d+1)" %% (i, i)' )
+  */
+''' % (title, '='*len(title))
 
 def main():
     if len(sys.argv) < 2:
-        help()
+        print readme_str()
         sys.exit(1)
 
     count = {True: 0, False: 0}
