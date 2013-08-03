@@ -178,8 +178,8 @@ def readme_str():
     import datetime
     versionstr = '%d.%d.%d' % VERSION
     datestr = datetime.datetime(*DATE).strftime('%Y/%m/%d')
-    return '''buriedcode
-==========
+    return '''buriedecode
+===========
   expanding buried script in another language\'s source code in-place.
 
   - version: %s
