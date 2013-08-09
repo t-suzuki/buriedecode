@@ -189,7 +189,7 @@ def readme_str():
 
 usage:
 ------
-    $ buriedecode [files]
+    $ python buriedecode.py [files]
 
 supported script(buried, embeded) languages:
 --------------------------------------------
@@ -206,7 +206,7 @@ burying example: burying Python in C/C++
 ----------------------------------------
     /*?python
     for i in range(3):
-        print "#define NEXT_TO_%%d (%%d+1)" %% (i, i)' )
+        print "#define NEXT_TO_%%d (%%d+1)" %% (i, i)
     */
 ''' % (versionstr, datestr)
 
