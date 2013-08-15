@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import os
+import stat
 import sys
 import re
 import subprocess
 
-VERSION = (0, 0, 2)
-DATE = (2013, 8, 3)
+VERSION = (0, 0, 3)
+DATE = (2013, 8, 15)
 
 VERBOSE = False
 def _I(s, *av):
@@ -30,30 +31,44 @@ def create_script_engine_processor(tag, cmd, option):
 ProcessorPython = create_script_engine_processor('python', 'python', '-c')
 ProcessorRuby = create_script_engine_processor('ruby', 'ruby', '-e')
 
-def create_C_or_CPP_processor(tag, suffix, compiler):
-    class ProcessorCorCPP(object):
+def create_compiler_processor(tag, suffix, compiler):
+    class ProcessorCompiler(object):
         TAG = tag
         def execute(self, script):
             import tempfile
-            with tempfile.NamedTemporaryFile('wb', suffix=suffix) as tmp:
-                tmp.write(script)
-                tmp.flush()
-                _I('temp file path:', tmp.name)
-                with tempfile.NamedTemporaryFile('wb', suffix='.exe') as exe:
-                    p = subprocess.Popen([compiler, tmp.name, '-o', exe.name],
-                            stdout=subprocess.PIPE)
-                    stdout, stderr = p.communicate()
-                    if stdout: _I('compiler:', stdout)
-                    if stderr: _I('compiler:', stderr)
+            (srcfd, srcpath) = tempfile.mkstemp(suffix=suffix)
+            try:
+                _I('temp file path:', srcpath)
+                os.write(srcfd, script)
+                os.close(srcfd)
 
-                    p = subprocess.Popen([exe.name], stdout=subprocess.PIPE)
+                (exefd, exepath) = tempfile.mkstemp()
+                _I('exe file path:', exepath)
+                os.unlink(exepath)
+
+                try:
+                    p = subprocess.Popen([compiler, srcpath, '-o', exepath],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     stdout, stderr = p.communicate()
+                    if stdout: _I('compiler out:', stdout)
+                    if stderr: _I('compiler err:', stderr)
+
+                    p = subprocess.Popen([exepath],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    stdout, stderr = p.communicate()
+                finally:
+                    _I('deleting exe:', exepath)
+                    os.unlink(exepath)
+            finally:
+                _I('deleting src:', srcpath)
+                os.unlink(srcpath)
 
             return stdout
-    return ProcessorCorCPP
+    return ProcessorCompiler
 
-ProcessorC = create_C_or_CPP_processor('c', '.c', 'gcc')
-ProcessorCPP = create_C_or_CPP_processor('cpp', '.cpp', 'g++')
+ProcessorC = create_compiler_processor('c', '.c', 'gcc')
+ProcessorCPP = create_compiler_processor('cpp', '.cpp', 'g++')
+ProcessorHaskell = create_compiler_processor('haskell', '.hs', 'ghc')
 
 def tag_to_processor(tag):
     try:
@@ -62,6 +77,7 @@ def tag_to_processor(tag):
                 ProcessorRuby.TAG: ProcessorRuby,
                 ProcessorC.TAG: ProcessorC,
                 ProcessorCPP.TAG: ProcessorCPP,
+                ProcessorHaskell.TAG: ProcessorHaskell,
                 }[tag.strip().lower()]
         return cls()
     except:
@@ -195,6 +211,7 @@ supported script(buried, embeded) languages:
 --------------------------------------------
   - Python (python)
   - Ruby (ruby)
+  - Haskell (ghc)
   - C (gcc)
   - C++ (g++)
 
@@ -202,12 +219,31 @@ supported host languages:
 -------------------------
   - C/C++ (.c, .cpp, .h, .hpp)
 
-burying example: burying Python in C/C++
+burying example: Python in C
 ----------------------------------------
     /*?python
     for i in range(3):
         print "#define NEXT_TO_%%d (%%d+1)" %% (i, i)
     */
+    /*?python:replaced:begin*/
+    #define NEXT_TO_0 (0+1)
+    #define NEXT_TO_1 (1+1)
+    #define NEXT_TO_2 (2+1)
+    /*?python:replaced:end*/
+
+burying example: Haskell in C++
+----------------------------------------
+    int arr[] = {
+    /*?haskell
+    join s [] = ""
+    join s (x:[]) = x
+    join s (x:xs) = x ++ s ++ (join s xs)
+    main = putStrLn $ join ", " $ take 10 $ map show $ iterate (*2) 1
+    */
+    //?haskell:replaced:begin
+    1, 2, 4, 8, 16, 32, 64, 128, 256, 512
+    //?haskell:replaced:end
+    };
 ''' % (versionstr, datestr)
 
 def main():
